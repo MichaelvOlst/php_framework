@@ -10,4 +10,9 @@ $app = new Application(__DIR__.'/..');
 $app->bootstrap();
 
 
+dump($app->get('config'));
+
+dump($app->get('config')->get('app.version'));
+
+
 return $app;

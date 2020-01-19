@@ -2,12 +2,13 @@
 
 namespace Core;
 
+use Core\Config\Config;
 use Core\Exception\InitException;
 use Illuminate\Container\Container;
 
 class Application extends Container {
 
-    protected $root_dir;
+    protected $root_path;
 
     protected $app_path;
 
@@ -18,6 +19,11 @@ class Application extends Container {
     const DS = DIRECTORY_SEPARATOR;
 
     public static $self = null;
+
+    protected $initObjects = [
+        'config' => Config::class,
+        // 'router' => Router::class,
+    ];
 
     public function __construct(string $root_path) 
     {
@@ -35,7 +41,7 @@ class Application extends Container {
         }
 
         if (is_string($id)) {
-            return static::$self->get($id);
+            return static::$self->make($id);
         }
 
         return static::$self;
@@ -46,6 +52,8 @@ class Application extends Container {
     {
         $this->registerPaths();
 
+        $this->registerDefaultObjects();
+
         $this->loadConfig();
 
         $this->initRouter();
@@ -55,18 +63,33 @@ class Application extends Container {
 
     protected function registerPaths()
     {
-        $this->app_path = $this->root_dir.'app';
+        $this->app_path = $this->root_path.'app';
 
-        $this->config_path = $this->root_dir.'config';
+        $this->config_path = $this->root_path.'config';
 
-        $this->view_path = $this->root_dir.'views';
+        $this->view_path = $this->root_path.'views';
+        
     }
 
+
+    protected function registerDefaultObjects()
+    {
+        foreach ($this->initObjects as $key => $val) {
+            $this->singleton($key, function() use ($val) {
+                return new $val();
+            });
+        }
+    }
 
 
     protected function loadConfig()
     {
+        if(!is_dir($this->config_path)) {
+            throw new InitException("The directory $this->config_path does not exists.");
+        }
 
+        Config::load($this->config_path);
+        
     }
 
 
