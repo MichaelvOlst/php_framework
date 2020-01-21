@@ -2,10 +2,12 @@
 
 namespace Core;
 
+use Core\Http\Request;
 use Core\Config\Config;
-use Core\Routing\Router;
 use Core\Exception\InitException;
 use Illuminate\Container\Container;
+use Core\Exception\RouteNotFoundException;
+use Core\Exception\MethodNotAllowedException;
 use Symfony\Component\HttpFoundation\Response;
 
 class Application extends Container {
@@ -22,7 +24,7 @@ class Application extends Container {
 
     public static $self = null;
 
-    public $router;
+    protected $namespaceHandler = 'App\\Handlers\\';
 
     protected $initObjects = [
         'config' => Config::class,
@@ -59,7 +61,7 @@ class Application extends Container {
 
         $this->loadConfig();
 
-        $this->initRouter();
+        $this->loadDefaultBindings();
     }
 
 
@@ -94,23 +96,80 @@ class Application extends Container {
     }
 
 
-    protected function initRouter()
+    protected function loadDefaultBindings()
     {
-        $this->router = new Router($this);
+        $this->bind(Request::class, function(){
+            return Request::createFromGlobals();
+        });
     }
 
 
     public function run($request = null)
     {
+
+        $dispatcher = \FastRoute\simpleDispatcher(function(\FastRoute\RouteCollector $router) {
+            require $this->app_path.'/routes.php';
+        });
+
+        $request = $this->make(Request::class);
+
+        $routeInfo = $dispatcher->dispatch($request->getMethod(), $request->getPathInfo());
+
+
+        dump($routeInfo);
+
+        switch ($routeInfo[0]) {
+            case \FastRoute\Dispatcher::NOT_FOUND:
+                // ... 404 Not Found
+                throw new RouteNotFoundException("Route ".$request->getPathInfo()." not found");
+                break;
+            case \FastRoute\Dispatcher::METHOD_NOT_ALLOWED:
+                throw new MethodNotAllowedException("Method ".$request->getMethod()." not allowed");
+                // ... 405 Method Not Allowed
+                break;
+            case \FastRoute\Dispatcher::FOUND:
+
+                $this->handleFoundRoute($routeInfo[1], $routeInfo[2]);
+                // $handler = $routeInfo[1];
+                // $vars = $routeInfo[2];
+                // ... call $handler with $vars
+                break;
+        }
+
+
         // $response = $this->dispatch($request);
         // if ($response instanceof Response) {
         //     $response->send();
         // } else {
-        //     echo (string) $response;
+        //     echo (string) $response;handleFoundRoute
         // }
         // if (count($this->middleware) > 0) {
         //     $this->callTerminableMiddleware($response);
         // }
+    }
+
+
+    protected function handleFoundRoute($handler, $args)
+    {
+        if(isset($handler['middleware'])) {
+            // call middleware first
+        }
+
+        [$class, $method] = explode('@', $handler['handler']);
+
+        // dump($handler['handler']);
+
+        if(!class_exists($class)) {
+            dump('test');
+        }
+
+        $obj = new $class();
+
+        $response = $this->call([$obj, $method], $args);
+
+        dump($response);
+
+
     }
 
 }
