@@ -3,8 +3,10 @@
 namespace Core;
 
 use Core\Config\Config;
+use Core\Routing\Router;
 use Core\Exception\InitException;
 use Illuminate\Container\Container;
+use Symfony\Component\HttpFoundation\Response;
 
 class Application extends Container {
 
@@ -20,9 +22,10 @@ class Application extends Container {
 
     public static $self = null;
 
+    public $router;
+
     protected $initObjects = [
         'config' => Config::class,
-        // 'router' => Router::class,
     ];
 
     public function __construct(string $root_path) 
@@ -57,7 +60,6 @@ class Application extends Container {
         $this->loadConfig();
 
         $this->initRouter();
-
     }
 
 
@@ -89,19 +91,26 @@ class Application extends Container {
         }
 
         Config::load($this->config_path);
-        
     }
 
 
     protected function initRouter()
     {
-
+        $this->router = new Router($this);
     }
 
 
-    public function run()
+    public function run($request = null)
     {
-        
+        // $response = $this->dispatch($request);
+        // if ($response instanceof Response) {
+        //     $response->send();
+        // } else {
+        //     echo (string) $response;
+        // }
+        // if (count($this->middleware) > 0) {
+        //     $this->callTerminableMiddleware($response);
+        // }
     }
 
 }

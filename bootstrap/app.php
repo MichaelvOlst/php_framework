@@ -9,6 +9,8 @@ $app = new Application(__DIR__.'/..');
 
 $app->bootstrap();
 
+$router = $app->router;
+require __DIR__.'/../app/routes.php';
 
 dump($app->get('config'));
 
