@@ -4,21 +4,23 @@ namespace Core;
 
 use Core\Http\Request;
 use Core\Config\Config;
+use Core\Http\Response;
+use Core\Providers\TwigProvider;
 use Core\Exception\InitException;
 use Illuminate\Container\Container;
+use Core\Exception\ClassNotFoundException;
 use Core\Exception\RouteNotFoundException;
 use Core\Exception\MethodNotAllowedException;
-use Symfony\Component\HttpFoundation\Response;
 
 class Application extends Container {
 
-    protected $root_path;
+    public $root_path;
 
-    protected $app_path;
+    public $app_path;
 
-    protected $config_path;
+    public $config_path;
 
-    protected $view_path;
+    public $view_path;
 
     const DS = DIRECTORY_SEPARATOR;
 
@@ -30,12 +32,21 @@ class Application extends Container {
         'config' => Config::class,
     ];
 
+
+    protected $providers = [
+        TwigProvider::class,    
+    ];
+    
+
     public function __construct(string $root_path) 
     {
         $root_path = realpath(rtrim($root_path, '/\\'));
         $this->root_path = $root_path.self::DS;
 
         self::$self = &$this;
+
+        $this->instance('app', $this);
+        $this->instance(self::class, $this);
     }
 
 
@@ -62,6 +73,8 @@ class Application extends Container {
         $this->loadConfig();
 
         $this->loadDefaultBindings();
+
+        $this->loadProviders();
     }
 
 
@@ -104,6 +117,25 @@ class Application extends Container {
     }
 
 
+    protected function loadProviders()
+    {
+        foreach($this->providers as $provider) {
+
+            $provider = new $provider($this);
+
+            if (method_exists($provider, 'boot')) {
+                $this->call([$provider, 'boot']);
+            }
+
+            if (method_exists($provider, 'register')) {
+                $provider->register();
+            }           
+        }
+
+
+    }
+
+
     public function run($request = null)
     {
 
@@ -113,12 +145,10 @@ class Application extends Container {
 
         $request = $this->make(Request::class);
 
-        $routeInfo = $dispatcher->dispatch($request->getMethod(), $request->getPathInfo());
+        [$uriFound, $handler, $vars] = $dispatcher->dispatch($request->getMethod(), $request->getPathInfo());
 
 
-        dump($routeInfo);
-
-        switch ($routeInfo[0]) {
+        switch ($uriFound) {
             case \FastRoute\Dispatcher::NOT_FOUND:
                 // ... 404 Not Found
                 throw new RouteNotFoundException("Route ".$request->getPathInfo()." not found");
@@ -128,11 +158,7 @@ class Application extends Container {
                 // ... 405 Method Not Allowed
                 break;
             case \FastRoute\Dispatcher::FOUND:
-
-                $this->handleFoundRoute($routeInfo[1], $routeInfo[2]);
-                // $handler = $routeInfo[1];
-                // $vars = $routeInfo[2];
-                // ... call $handler with $vars
+                $this->handleFoundRoute($handler, $vars);
                 break;
         }
 
@@ -149,25 +175,35 @@ class Application extends Container {
     }
 
 
-    protected function handleFoundRoute($handler, $args)
+    protected function handleFoundRoute($action, $vars = null)
     {
-        if(isset($handler['middleware'])) {
+        if(isset($action['middleware'])) {
             // call middleware first
         }
 
-        [$class, $method] = explode('@', $handler['handler']);
+        if(!strstr($action['handler'], '@')) {
+            $action['handler'] = $action['handler'].'@__invoke';
+        }
+
+        [$class, $method] = explode('@', $action['handler']);
 
         // dump($handler['handler']);
 
         if(!class_exists($class)) {
-            dump('test');
+            throw new ClassNotFoundException("Class $class does not exists");
         }
+
+        // dump($vars);
 
         $obj = new $class();
 
-        $response = $this->call([$obj, $method], $args);
+        $response = $this->call([$obj, $method], $vars);
 
-        dump($response);
+         if ($response instanceof Response) {
+            $response->send();
+        } else {
+            echo (string) $response;
+        }
 
 
     }

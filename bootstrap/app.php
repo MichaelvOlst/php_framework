@@ -10,9 +10,13 @@ $app = new Application(__DIR__.'/..');
 $app->bootstrap();
 
 
-dump($app->get('config'));
+$whoops = new \Whoops\Run;
+$whoops->pushHandler(new \Whoops\Handler\PrettyPageHandler);
+$whoops->register();
 
-dump($app->get('config')->get('app.version'));
+// dump($app->get('config'));
+
+// dump($app->get('config')->get('app.version'));
 
 
 return $app;
