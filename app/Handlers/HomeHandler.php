@@ -2,25 +2,18 @@
 
 namespace App\Handlers;
 
+use Core\Application;
 use Core\Http\Request;
 use Core\Http\Response;
 
 class HomeHandler 
 {
-    public function __invoke(Request $request, Response $response, $id, $title = null)
+    public function __invoke(Request $request, Response $response)
     {
-        
-        // $response = new Response(
-        //     $id .'---'.$title,
-        //     Response::HTTP_OK,
-        //     ['content-type' => 'text/html']
-        // );
+        $app = Application::getInstance();
 
-        // dump($response);
-        
+        dump($app->get('db'));
 
-        $response->render('pages/home.twig', ['name' => 'Michael']);
-
-        return $response;
+        return $response->render('pages/home.twig', ['name' => 'Michael']);
     }
 }

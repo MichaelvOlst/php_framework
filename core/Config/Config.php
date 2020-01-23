@@ -36,8 +36,6 @@ class Config
         } else {
             $this->config[$key] = [$value];
         }
-
-        // dump($this->config->get('app'));
     }
 
     public function has($key)
@@ -45,9 +43,9 @@ class Config
         return isset($this->config[ $key ]) ? true : false;
     }
 
-    public static function load($path)
+    public function load($path)
     {
-        $cfg = Application::getInstance('config');
+        // $cfg = Application::getInstance('config');
 
         foreach (new DirectoryIterator($path) as $fileInfo) {
             if($fileInfo->isDot()) {
@@ -57,30 +55,13 @@ class Config
             // dump(require_once $fileInfo->getRealPath());
             $tmpConfig = require_once $fileInfo->getRealPath();
             
-            $cfg->set(
+            $this->set(
                 str_replace('.php' ,'', $fileInfo->getFilename()), 
                 $tmpConfig
             );
 
             unset($tmpConfig);
         }
-        
-        // $dirs = scandir($path);
-        // $total = count($dirs);
-        // for($i = 2; $i < $total; $i ++)
-        // {
-        //     if(is_dir( $path . DIRECTORY_SEPARATOR . $dirs [$i] ))
-        //     {
-        //         Config::load($path . DIRECTORY_SEPARATOR . $dirs [$i]) ;
-        //     } else{
-        //         $tmp = require_once $path . DIRECTORY_SEPARATOR . $dirs [$i] ;
-        //         if(is_array($tmp))
-        //         {
-        //             $cfg->set(str_replace('.php' ,'',$dirs [$i]), $tmp);
-        //         }
-        //         unset($tmp);
-        //     }
-        // }
     }
 
     /**

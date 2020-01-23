@@ -2,7 +2,7 @@
 
 return [
 
-    'name' => 'test',
+    'name' => getenv('APP_NAME'),
     'version' => '0.0.1',
 
 ];

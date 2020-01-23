@@ -5,7 +5,7 @@ namespace Core;
 use Core\Http\Request;
 use Core\Config\Config;
 use Core\Http\Response;
-use Core\Providers\TwigProvider;
+use Core\Traits\ProvidersTrait;
 use Core\Exception\InitException;
 use Illuminate\Container\Container;
 use Core\Exception\ClassNotFoundException;
@@ -28,14 +28,7 @@ class Application extends Container {
 
     protected $namespaceHandler = 'App\\Handlers\\';
 
-    protected $initObjects = [
-        'config' => Config::class,
-    ];
-
-
-    protected $providers = [
-        TwigProvider::class,    
-    ];
+    use ProvidersTrait;
     
 
     public function __construct(string $root_path) 
@@ -68,8 +61,6 @@ class Application extends Container {
     {
         $this->registerPaths();
 
-        $this->registerDefaultObjects();
-
         $this->loadConfig();
 
         $this->loadDefaultBindings();
@@ -89,23 +80,17 @@ class Application extends Container {
     }
 
 
-    protected function registerDefaultObjects()
-    {
-        foreach ($this->initObjects as $key => $val) {
-            $this->singleton($key, function() use ($val) {
-                return new $val();
-            });
-        }
-    }
-
-
     protected function loadConfig()
     {
         if(!is_dir($this->config_path)) {
             throw new InitException("The directory $this->config_path does not exists.");
         }
 
-        Config::load($this->config_path);
+        $configClass = new Config();
+        $configClass->load($this->config_path);
+
+        $this->instance('config', $configClass);
+        $this->instance(Config::class, $configClass);
     }
 
 
@@ -114,25 +99,6 @@ class Application extends Container {
         $this->bind(Request::class, function(){
             return Request::createFromGlobals();
         });
-    }
-
-
-    protected function loadProviders()
-    {
-        foreach($this->providers as $provider) {
-
-            $provider = new $provider($this);
-
-            if (method_exists($provider, 'boot')) {
-                $this->call([$provider, 'boot']);
-            }
-
-            if (method_exists($provider, 'register')) {
-                $provider->register();
-            }           
-        }
-
-
     }
 
 
