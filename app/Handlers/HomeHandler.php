@@ -2,6 +2,7 @@
 
 namespace App\Handlers;
 
+use App\Models\User;
 use Core\Application;
 use Core\Http\Request;
 use Core\Http\Response;
@@ -12,8 +13,11 @@ class HomeHandler
     {
         $app = Application::getInstance();
 
-        dump($app->get('db'));
+        $users = $app->get('db')->query('SELECT * FROM users')->all(User::class);
+        $user2 = $app->get('db')->prepare('SELECT * FROM users WHERE email = ? LIMIT 1', ['laurablok@gmail.com'])->get(User::class);
 
-        return $response->render('pages/home.twig', ['name' => 'Michael']);
+        dump($users);
+
+        return $response->render('pages/home.twig', ['name' => $user2->fullName()]);
     }
 }

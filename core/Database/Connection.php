@@ -4,6 +4,7 @@ namespace Core\Database;
 
 use PDO;
 use Core\Config\Config;
+use Core\Database\Prepare;
 
 class Connection 
 {
@@ -23,7 +24,7 @@ class Connection
     {
         return [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
             PDO::ATTR_EMULATE_PREPARES   => false,
         ];
     }
@@ -35,8 +36,20 @@ class Connection
     }
 
 
-    public function query()
+    public function query($query)
     {
+        return new Query($this, $query);
+    }
 
+
+    public function prepare($query, $args = [])
+    {
+        return new Prepare($this, $query, $args);
+    }
+
+
+    public function getPdo()
+    {
+        return $this->pdo;
     }
 }
