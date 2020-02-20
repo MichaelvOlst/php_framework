@@ -75,8 +75,7 @@ class Application extends Container {
 
         $this->config_path = $this->root_path.'config';
 
-        $this->view_path = $this->root_path.'views';
-        
+        $this->view_path = $this->root_path.'views';   
     }
 
 

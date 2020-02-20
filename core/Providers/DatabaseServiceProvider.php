@@ -14,13 +14,6 @@ class DatabaseServiceProvider extends ServiceProvider
         
         $this->app->instance('db', $db);
         $this->app->instance(Connection::class, $db);
-
     }
-
-
-    
-
-
-
 }
 

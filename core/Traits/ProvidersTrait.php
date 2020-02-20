@@ -14,7 +14,7 @@ Trait ProvidersTrait
 
     protected function loadProviders()
     {
-        foreach($this->defaultProviders as $provider) {
+        foreach($this->getProviders() as $provider) {
 
             $provider = new $provider($this);
 
@@ -26,6 +26,15 @@ Trait ProvidersTrait
                 $provider->register();
             }           
         }
+    }
+
+
+    protected function getProviders()
+    {
+        return array_merge(
+            $this->defaultProviders, 
+            $this->get('config')->get('app.providers') ?? [] 
+        );
     }
 
 }
